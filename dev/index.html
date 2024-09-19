@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Recorder and Transcriber</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #recordButton {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #chatBox {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-width: 600px;
+            height: 200px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Audio Recorder and Transcriber</h1>
+    <button id="recordButton">Start Recording</button>
+    <div id="chatBox"></div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        const recordButton = document.getElementById('recordButton');
+        const chatBox = document.getElementById('chatBox');
+
+        recordButton.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+                recordButton.textContent = 'Stop Recording';
+            } else {
+                stopRecording();
+                recordButton.textContent = 'Start Recording';
+            }
+        });
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+                    isRecording = true;
+                    audioChunks = [];
+
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener('stop', () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        sendAudioToServer(audioBlob);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
+                });
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            isRecording = false;
+        }
+
+        function sendAudioToServer(audioBlob) {
+            const formData = new FormData();
+            formData.append('audio_data', audioBlob, 'audio.wav');
+
+            // fetch('http://localhost:5000/transcribe', {
+            //     method: 'POST',
+            //     body: formData
+            // })
+            fetch('http://127.0.0.1:5001/transcribe', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const transcription = data.transcription;
+                const message = document.createElement('div');
+                message.className = 'message';
+                message.textContent = transcription;
+                chatBox.appendChild(message);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
