@@ -4,3 +4,4 @@ myenv/*
 *.DS_Store
 *.wav
 .env
+api/myenv/*
