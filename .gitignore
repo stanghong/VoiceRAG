@@ -1,5 +1,4 @@
 *.pdf
-*.txt
 myenv/*
 .DS_Store/*
 *.DS_Store
