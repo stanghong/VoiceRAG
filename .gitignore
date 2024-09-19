@@ -5,3 +5,8 @@ myenv/*
 *.wav
 .env
 api/myenv/*
+# Ignore all .txt files
+*.txt
+
+# Exclude requirements.txt from being ignored
+!requirements.txt
