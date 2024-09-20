@@ -10,11 +10,13 @@ import os
 import openai
 from openai import OpenAI
 from getpass import getpass
+from dotenv import load_dotenv
+load_dotenv()
 
 import boto3
 from io import BytesIO
 
-openai.api_key = os.environ['OPENAI_API_KEY']
+OpenAI.api_key = os.environ['OPENAI_API_KEY']
 app = FastAPI()
 
 # %%
