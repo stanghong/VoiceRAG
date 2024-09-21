@@ -3,9 +3,12 @@ import requests
 import json
 
 # Define the API endpoint
-url = 'http://0.0.0.0:8000/api/voicebot/'
+#local
 # url = 'http://127.0.0.1:8000/api/voicebot/'
-
+# docker
+# url = 'http://0.0.0.0:8000/api/voicebot/'
+# aws
+url = 'http://184.73.60.223:8000/api/voicebot/'
 # Function to send a text query
 def send_text_query(query: str):
     data = {
