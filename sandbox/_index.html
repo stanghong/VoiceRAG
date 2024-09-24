@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Recorder and Transcriber</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        #recordButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #chatBox {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-width: 600px;
+            height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            background-color: #2c2c2c;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+            color: white;
+        }
+        .user {
+            align-self: flex-end;
+            background-color: #1e90ff;
+        }
+        .gpt {
+            align-self: flex-start;
+            background-color: #555555;
+        }
+        #loadingIndicator {
+            display: none;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Audio Recorder and Transcriber</h1>
+    <button id="recordButton">Start Recording</button>
+    <div id="loadingIndicator">Processing...</div>
+    <div id="chatBox"></div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        const recordButton = document.getElementById('recordButton');
+        const chatBox = document.getElementById('chatBox');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        recordButton.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+                recordButton.textContent = 'Stop Recording';
+            } else {
+                stopRecording();
+                recordButton.textContent = 'Start Recording';
+            }
+        });
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+                    isRecording = true;
+                    audioChunks = [];
+
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener('stop', () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+                        // Play back the recorded audio for testing
+                        const audioURL = URL.createObjectURL(audioBlob);
+                        const audio = new Audio(audioURL);
+                        audio.play();
+
+                        sendAudioToServer(audioBlob);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
+                    alert('Error accessing microphone: ' + error.message);
+                });
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            isRecording = false;
+        }
+
+        function sendAudioToServer(audioBlob) {
+            const formData = new FormData();
+            formData.append('audio_data', audioBlob, 'audio.webm');
+
+            loadingIndicator.style.display = 'block';
+
+            fetch('http://127.0.0.1:5001/transcribe', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingIndicator.style.display = 'none';
+
+                if (data.error) {
+                    console.error('Error from server:', data.error);
+                    alert('Error from server: ' + data.details);
+                    return;
+                }
+
+                const userQuestion = data.transcription;
+                const gptAnswer = data.gpt_answer;
+
+                // Display the user's question
+                const userMessage = document.createElement('div');
+                userMessage.className = 'message user';
+                userMessage.textContent = userQuestion;
+                chatBox.appendChild(userMessage);
+
+                // Display GPT's answer
+                const gptMessage = document.createElement('div');
+                gptMessage.className = 'message gpt';
+                gptMessage.textContent = gptAnswer;
+                chatBox.appendChild(gptMessage);
+
+                // Scroll to the bottom of the chatBox
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(error => {
+                loadingIndicator.style.display = 'none';
+                console.error('Error:', error);
+                alert('An error occurred while communicating with the server.');
+            });
+        }
+    </script>
+</body>
+</html>

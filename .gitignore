@@ -3,6 +3,7 @@ myenv/*
 .DS_Store/*
 *.DS_Store
 *.wav
+# !downloaded_audio.wav
 *.mp3
 .env
 api/myenv/*
@@ -11,3 +12,5 @@ api/myenv/*
 
 # Exclude requirements.txt from being ignored
 !requirements.txt
+vrenv/*
+terraform-ecs-dockerhub/*

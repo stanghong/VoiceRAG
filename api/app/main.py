@@ -12,6 +12,7 @@ from openai import OpenAI
 from getpass import getpass
 from dotenv import load_dotenv
 load_dotenv()
+import uuid
 
 import boto3
 from io import BytesIO
@@ -74,4 +75,33 @@ async def voicebot_endpoint(
     response = completion.choices[0].message.content
     print(f'response is {response}')
     # 返回 QueryResponse
-    return QueryResponse(output_wav_url=None, return_text=response)
+    # Generate speech from the response text
+    speech_file = BytesIO()
+    speech_response = client.audio.speech.create(
+        model="tts-1",
+        voice="nova",
+        input=response
+    )
+    
+    # Save the audio content to the BytesIO object
+    for chunk in speech_response.iter_bytes(chunk_size=4096):
+        speech_file.write(chunk)
+    
+    # Reset the file pointer to the beginning
+    speech_file.seek(0)
+    
+    # Upload the audio file to S3
+    s3 = boto3.client('s3')
+    bucket_name = 'voicebot-text-to-speech'  # Replace with your actual S3 bucket name
+    file_name = f"speech_{uuid.uuid4()}.mp3"
+    
+    s3.upload_fileobj(speech_file, bucket_name, file_name)
+    
+    # Generate a presigned URL for the uploaded file
+    url = s3.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket_name, 'Key': file_name},
+        ExpiresIn=3600  # URL expires in 1 hour
+    )
+    print(f'url is {url}')
+    return QueryResponse(output_wav_url=url, return_text=response)

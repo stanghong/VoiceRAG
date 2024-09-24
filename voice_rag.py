@@ -6,9 +6,14 @@ import numpy as np
 # Set the sample rate and duration
 fs = 44100  # Sample rate in Hz
 duration = 5  # Duration of recording in seconds
+# List available input devices
+print(sd.query_devices())
+sd.default.reset()
+print("Recording...") 
 
-print("Recording...")
-
+# %%
+# need to check the devices from print list make sure the name matches 
+sd.default.device = (1, 2) 
 # %%
 # Record audio
 myrecording = sd.rec(int(duration * fs), samplerate=fs, channels=1)
@@ -20,10 +25,10 @@ print("Recording complete.")
 myrecording_int16 = np.int16(myrecording / np.max(np.abs(myrecording)) * 32767)
 
 # Save the recording as a WAV file
-write('output_microphone_audio1.wav', fs, myrecording_int16)
-
-print("Playing back the recording...")
+write('output_microphone_audio.wav', fs, myrecording_int16)
 # %%
+print("Playing back the recording...")
+
 # Play back the recorded audio
 sd.play(myrecording, fs)
 sd.wait()  # Wait until playback is finished
@@ -43,7 +48,7 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 client = OpenAI()
 # %%
-audio_file = open("output_microphone_audio1.wav", "rb")
+audio_file = open("output_microphone_audio.wav", "rb")
 transcription = client.audio.transcriptions.create(
   model="whisper-1", 
   file=audio_file, 
